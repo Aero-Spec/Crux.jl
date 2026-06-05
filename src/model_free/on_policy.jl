@@ -84,8 +84,10 @@ function POMDPs.solve(𝒮::OnPolicySolver, mdp)
     s = Sampler(mdp, 𝒮.agent, S=𝒮.S, required_columns=𝒮.required_columns, λ=λ, max_steps=𝒮.max_steps, Vc=𝒮.Vc)
     isnothing(𝒮.log.sampler) && (𝒮.log.sampler = s)
 
-    # Log the pre-train performance
-    log(𝒮.log, 𝒮.i, 𝒮=𝒮)
+    # Log the pre-train performance only when starting from scratch
+    if 𝒮.i == 0
+        log(𝒮.log, 𝒮.i, 𝒮=𝒮)
+    end
 
     # Loop over the desired number of environment interactions
     for 𝒮.i = range(𝒮.i, stop=𝒮.i + 𝒮.N - 𝒮.ΔN, step=𝒮.ΔN)
