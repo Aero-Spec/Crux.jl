@@ -87,7 +87,7 @@ function POMDPs.solve(𝒮::OnPolicySolver, mdp)
     # Log the pre-train performance only when starting from scratch
     if 𝒮.i == 0
         log(𝒮.log, 𝒮.i, 𝒮=𝒮)
-    end
+    end 
 
     # Loop over the desired number of environment interactions
     for 𝒮.i = range(𝒮.i, stop=𝒮.i + 𝒮.N - 𝒮.ΔN, step=𝒮.ΔN)
