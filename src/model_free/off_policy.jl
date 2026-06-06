@@ -126,8 +126,10 @@ function POMDPs.solve(𝒮::OffPolicySolver, mdp)
 		steps!(s, 𝒮.buffer, Nsteps=Nfill, explore=true, i=𝒮.i, store=𝒮.interaction_storage, cb=(D)->𝒮.post_sample_callback(D, 𝒮=𝒮, info=info))
 	end 
 	
-	# Log the pre-train performance
-	log(𝒮.log, 𝒮.i, info, 𝒮=𝒮)
+	# Log the pre-train performance only when starting from scratch
+	if istart == 0
+	    log(𝒮.log, 𝒮.i, info, 𝒮=𝒮)
+	end
     
     # Loop over the desired number of environment interactions
     for 𝒮.i in range(𝒮.i, stop=istart + 𝒮.N - 𝒮.ΔN, step=𝒮.ΔN)
