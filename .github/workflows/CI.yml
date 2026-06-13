@@ -70,4 +70,4 @@ jobs:
           slug: Aero-Spec/Crux.jl
           files: ./lcov.info
           flags: unittests
-          name: codecov-umbrella
+          name: codecov-umbrella 
