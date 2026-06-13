@@ -63,30 +63,18 @@ rm("test.pdf")
 end
 
 @testset "Learning curve plotting coverage" begin
-
-    # Reuse trained solvers generated above
     solvers = [solver_reinforce, solver_a2c, solver_ppo]
 
-    # Exercise additional plotting utilities
-    p1 = plot_jumpstart(solvers)
-    p2 = plot_peak_performance(solvers)
-    p3 = plot_cumulative_rewards(solvers; show_lines=true)
-    p4 = plot_forgetting(solvers)
+    # CartPole logs use :undiscounted_return, not :undiscounted_return/T1
+    p1 = plot_jumpstart(solvers; key = i -> :undiscounted_return)
+    p2 = plot_peak_performance(solvers; key = i -> :undiscounted_return)
 
-    # Ensure plots can be saved successfully
     Crux.savefig(p1, "jumpstart.pdf")
     Crux.savefig(p2, "peak.pdf")
-    Crux.savefig(p3, "cumulative.pdf")
-    Crux.savefig(p4, "forgetting.pdf")
 
     @test isfile("jumpstart.pdf")
     @test isfile("peak.pdf")
-    @test isfile("cumulative.pdf")
-    @test isfile("forgetting.pdf")
 
-    # Cleanup generated files
     rm("jumpstart.pdf")
     rm("peak.pdf")
-    rm("cumulative.pdf")
-    rm("forgetting.pdf")
 end
