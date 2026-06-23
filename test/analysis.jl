@@ -78,3 +78,28 @@ end
     rm("jumpstart.pdf")
     rm("peak.pdf")
 end
+
+@testset "Continual learning plotting coverage" begin
+    solvers = [solver_reinforce, solver_a2c, solver_ppo]
+
+    x, y, breaks = cumulative_rewards(solvers; key = i -> :undiscounted_return)
+
+    @test length(x) > 0
+    @test length(y) > 0
+    @test length(breaks) == length(solvers)
+
+    res, breaks2 = single_task_performances(solvers; key = i -> :undiscounted_return)
+
+    @test length(res) > 0
+    @test length(breaks2) == length(solvers)
+
+    p3 = plot_cumulative_rewards(
+        solvers;
+        key = i -> :undiscounted_return,
+        show_lines = true
+    )
+
+    Crux.savefig(p3, "cumulative_rewards.pdf")
+    @test isfile("cumulative_rewards.pdf")
+    rm("cumulative_rewards.pdf")
+end
