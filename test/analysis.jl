@@ -113,9 +113,11 @@ end
         mdp,
         policy_ppo;
         Neps = 1,
-        max_steps = 2
+        max_steps = 2,
+        use_obs = false
     )
 
+    @test frames isa Vector
     @test !isempty(frames)
 
     Crux.gif(frames, "cartpole.gif"; fps = 5)
