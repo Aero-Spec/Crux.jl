@@ -26,3 +26,63 @@ l, b = Flux.pullback(total_loss, Flux.params(m))
 grad = b(1f0)
 grad.grads
 
+@testset "GAN loss coverage" begin
+    x = rand(Float32, 2, 8)
+    z = rand(Float32, 2, 8)
+
+    G = Chain(Dense(2, 2))
+    D = Chain(Dense(2, 1))
+
+    losses = [
+        GAN_BCELoss(),
+        GAN_LSLoss(),
+        GAN_HingeLoss(),
+        GAN_WLoss(),
+        GAN_WLossGP()
+    ]
+
+    for loss in losses
+        d_loss = Crux.Lᴰ(loss, D, x, x)
+        g_loss = Crux.Lᴳ(loss, G, D, z)
+
+        @test d_loss isa Number
+        @test g_loss isa Number
+        @test isfinite(d_loss)
+        @test isfinite(g_loss)
+    end
+end
+
+@testset "Conditional GAN loss coverage" begin
+    x = rand(Float32, 2, 8)
+    z = rand(Float32, 2, 8)
+    y = rand(Float32, 1, 8)
+
+    G = Chain(Dense(3, 2))
+    D = Chain(Dense(3, 1))
+
+    losses = [
+        GAN_BCELoss(),
+        GAN_LSLoss(),
+        GAN_HingeLoss(),
+        GAN_WLoss(),
+        GAN_WLossGP()
+    ]
+
+    for loss in losses
+        d_loss = Crux.Lᴰ(loss, D, x, x; yG = y, yD = y)
+        g_loss = Crux.Lᴳ(loss, G, D, z; yG = y)
+
+        @test d_loss isa Number
+        @test g_loss isa Number
+        @test isfinite(d_loss)
+        @test isfinite(g_loss)
+    end
+end
+
+@testset "GANLosses dictionary coverage" begin
+    @test haskey(GANLosses, "BCE")
+    @test haskey(GANLosses, "LS")
+    @test haskey(GANLosses, "Hinge")
+    @test haskey(GANLosses, "W")
+    @test haskey(GANLosses, "WGP")
+end
