@@ -108,3 +108,19 @@ end
     @test !isempty(res)
     @test length(breaks2) == length(solvers)
 end
+@testset "Analysis visualization coverage" begin
+    frames = Crux.episode_frames(
+        mdp,
+        policy_ppo;
+        Neps = 1,
+        max_steps = 2
+    )
+
+    @test !isempty(frames)
+
+    Crux.gif(frames, "cartpole.gif"; fps = 5)
+
+    @test isfile("cartpole.gif")
+
+    rm("cartpole.gif")
+end
