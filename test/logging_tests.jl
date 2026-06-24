@@ -1,6 +1,3 @@
-using Crux
-using Test
-
 @testset "logging helper coverage" begin
     buffer = Dict(
         :reward => [1.0, 2.0, 3.0, 4.0],
@@ -10,12 +7,12 @@ using Test
     s = (; buffer = buffer)
 
     avg_cb = log_episode_averages([:reward], 2)
-    avg_result = avg_cb(s)
+    avg_result = avg_cb(𝒮 = s)
 
     @test haskey(avg_result, Symbol("avg_reward"))
 
     sum_cb = log_experience_sums([:reward], 2)
-    sum_result = sum_cb(s)
+    sum_result = sum_cb(𝒮 = s)
 
     @test haskey(sum_result, Symbol("avg_reward"))
 end
