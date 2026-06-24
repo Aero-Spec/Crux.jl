@@ -97,3 +97,24 @@ end
     @test haskey(GANLosses, "W")
     @test haskey(GANLosses, "WGP")
 end
+
+@testset "ConvSN coverage" begin
+    x = rand(Float32, 8, 8, 1, 4)
+
+    layer = ConvSN((3, 3), 1 => 2, relu; pad = 1, stride = 1)
+
+    y = layer(x)
+
+    @test size(y) == (8, 8, 2, 4)
+    @test eltype(y) == Float32
+
+    ps = Flux.trainable(layer)
+
+    @test length(ps) == 2
+
+    io = IOBuffer()
+    show(io, layer)
+    s = String(take!(io))
+
+    @test occursin("ConvSN", s)
+end
