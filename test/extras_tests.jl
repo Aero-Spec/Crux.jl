@@ -86,3 +86,34 @@ end
     @test haskey(GANLosses, "W")
     @test haskey(GANLosses, "WGP")
 end
+
+@testset "Conditional GAN loss coverage" begin
+    batch_size = 8
+
+    x = rand(Float32, 2, batch_size)
+    z = rand(Float32, 2, batch_size)
+
+    yG = [rand(Float32, 1, batch_size)]
+    yD = [rand(Float32, 1, batch_size)]
+
+    G = Chain(Dense(3, 2))
+    D = Chain(Dense(3, 1))
+
+    losses = [
+        GAN_BCELoss(),
+        GAN_LSLoss(),
+        GAN_HingeLoss(),
+        GAN_WLoss(),
+        GAN_WLossGP()
+    ]
+
+    for loss in losses
+        d_loss = Crux.Lᴰ(loss, D, x, x; yG = yG, yD = yD)
+        g_loss = Crux.Lᴳ(loss, G, D, z; yG = yG)
+
+        @test d_loss isa Number
+        @test g_loss isa Number
+        @test isfinite(d_loss)
+        @test isfinite(g_loss)
+    end
+end
