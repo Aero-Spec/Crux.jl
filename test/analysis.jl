@@ -109,3 +109,18 @@ end
     @test !isempty(res)
     @test length(breaks2) == length(solvers)
 end
+
+@testset "Analysis continual learning coverage" begin
+    solvers = [solver_reinforce, solver_a2c, solver_ppo]
+
+    x, y, breaks = Crux.cumulative_rewards(solvers)
+
+    @test !isempty(x)
+    @test !isempty(y)
+    @test length(breaks) == length(solvers)
+
+    res, breaks2 = Crux.single_task_performances(solvers)
+
+    @test !isempty(res)
+    @test length(breaks2) == length(solvers)
+end
