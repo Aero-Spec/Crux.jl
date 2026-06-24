@@ -1,8 +1,18 @@
+using Crux
+using Test
+
 @testset "logging helper coverage" begin
-    buffer = Dict(
-        :reward => [1.0, 2.0, 3.0, 4.0],
-        :episode_end => [1, 1, 1, 1]
+    buffer = ExperienceBuffer(
+        Dict(
+            :reward => Float32[],
+            :episode_end => Bool[]
+        )
     )
+
+    for r in Float32[1, 2, 3, 4]
+        push!(buffer[:reward], r)
+        push!(buffer[:episode_end], true)
+    end
 
     s = (; buffer = buffer)
 
