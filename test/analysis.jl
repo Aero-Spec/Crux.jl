@@ -13,7 +13,6 @@ mdp = GymPOMDP(:CartPole)
 as = actions(mdp)
 S = state_space(mdp)
 
-# Flux network: map states to actions / values
 A_analysis() = DiscreteNetwork(
     Chain(Dense(Crux.dim(S)..., 64, relu), Dense(64, length(as))),
     as
@@ -93,8 +92,8 @@ end
     solvers = [solver_reinforce, solver_a2c, solver_ppo]
 
     x, y, breaks = Crux.cumulative_rewards(
-        solvers;
-        key = i -> :undiscounted_return
+        solvers,
+        i -> :undiscounted_return
     )
 
     @test !isempty(x)
@@ -102,24 +101,9 @@ end
     @test length(breaks) == length(solvers)
 
     res, breaks2 = Crux.single_task_performances(
-        solvers;
-        key = i -> :undiscounted_return
+        solvers,
+        i -> :undiscounted_return
     )
-
-    @test !isempty(res)
-    @test length(breaks2) == length(solvers)
-end
-
-@testset "Analysis continual learning coverage" begin
-    solvers = [solver_reinforce, solver_a2c, solver_ppo]
-
-    x, y, breaks = Crux.cumulative_rewards(solvers)
-
-    @test !isempty(x)
-    @test !isempty(y)
-    @test length(breaks) == length(solvers)
-
-    res, breaks2 = Crux.single_task_performances(solvers)
 
     @test !isempty(res)
     @test length(breaks2) == length(solvers)
