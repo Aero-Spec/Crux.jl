@@ -10,8 +10,7 @@ using Test
     )
 
     for r in Float32[1, 2, 3, 4]
-        push!(buffer[:reward], r)
-        push!(buffer[:episode_end], true)
+        push!(buffer; reward = r, episode_end = true)
     end
 
     s = (; buffer = buffer)
