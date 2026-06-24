@@ -118,3 +118,21 @@ end
 
     @test occursin("ConvSN", s)
 end
+
+@testset "device helpers coverage" begin
+    x2 = rand(Float32, 3, 4)
+    x3 = rand(Float32, 3, 4, 5)
+    x4 = rand(Float32, 3, 4, 5, 6)
+    x5 = rand(Float32, 2, 3, 4, 5, 6)
+
+    @test device(x2) == cpu
+    @test device(view(x2, :, 1:2)) == cpu
+
+    @test cpucall(identity, x2) == x2
+    @test mdcall(identity, x2, cpu) == x2
+
+    @test collect(bslice(x2, 1)) == collect(view(x2, :, 1))
+    @test collect(bslice(x3, 1)) == collect(view(x3, :, :, 1))
+    @test collect(bslice(x4, 1)) == collect(view(x4, :, :, :, 1))
+    @test collect(bslice(x5, 1)) == collect(view(x5, :, :, :, :, 1))
+end
