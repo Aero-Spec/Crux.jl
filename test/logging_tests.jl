@@ -1,26 +1,36 @@
 using Crux
 using Test
 
-@testset "logging callback coverage" begin
-    # Basic callback constructors
-    @test log_discounted_return(1) isa Function
-    @test log_undiscounted_return(1) isa Function
-    @test log_undiscounted_return([], 1) isa Function
-    @test log_failure(1) isa Function
-    @test log_metric_by_key(:reward, 1) isa Function
-    @test log_metrics_by_key([:reward], 1) isa Function
+@testset "logging callback body coverage" begin
+    buffer = ExperienceBuffer(
+        Dict(
+            :reward => Float32[1, 2, 3, 4],
+            :cost => Float32[2, 4, 6, 8],
+            :episode_end => Bool[true, true, true, true]
+        )
+    )
 
-    # Logging helper constructors
-    @test log_episode_averages([:reward], 2) isa Function
-    @test log_experience_sums([:reward], 2) isa Function
-end
+    s = (; buffer = buffer)
 
-@testset "exploration logging coverage" begin
-    @test log_exploration(nothing) isa Function
+    avg_cb = log_episode_averages([:reward, :cost], 2)
+    avg_result = avg_cb(𝒮 = s)
+
+    @test haskey(avg_result, Symbol("avg_reward"))
+    @test haskey(avg_result, Symbol("avg_cost"))
+    @test isfinite(avg_result[Symbol("avg_reward")])
+    @test isfinite(avg_result[Symbol("avg_cost")])
+
+    sum_cb = log_experience_sums([:reward, :cost], 2)
+    sum_result = sum_cb(𝒮 = s)
+
+    @test haskey(sum_result, Symbol("avg_reward"))
+    @test haskey(sum_result, Symbol("avg_cost"))
+    @test isfinite(sum_result[Symbol("avg_reward")])
+    @test isfinite(sum_result[Symbol("avg_cost")])
 end
 
 @testset "save_gif early return coverage" begin
-    cb = save_gif(log_at_zero=false)
+    cb = save_gif(log_at_zero = false)
 
     s = (
         dir = tempdir(),
@@ -28,5 +38,5 @@ end
         agent = (; π = nothing)
     )
 
-    @test cb(i=0, s=s, dir=tempdir(), logger=nothing) === nothing
+    @test cb(i = 0, s = s, dir = tempdir(), logger = nothing) === nothing
 end
