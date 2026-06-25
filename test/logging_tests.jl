@@ -1,16 +1,26 @@
 using Crux
 using Test
 
-@testset "logging callback construction coverage" begin
-    avg_cb = log_episode_averages([:reward], 2)
-    sum_cb = log_experience_sums([:reward], 2)
+@testset "logging callback coverage" begin
+    # Basic callback constructors
+    @test log_discounted_return(1) isa Function
+    @test log_undiscounted_return(1) isa Function
+    @test log_undiscounted_return([], 1) isa Function
+    @test log_failure(1) isa Function
+    @test log_metric_by_key(:reward, 1) isa Function
+    @test log_metrics_by_key([:reward], 1) isa Function
 
-    @test avg_cb isa Function
-    @test sum_cb isa Function
+    # Logging helper constructors
+    @test log_episode_averages([:reward], 2) isa Function
+    @test log_experience_sums([:reward], 2) isa Function
+end
+
+@testset "exploration logging coverage" begin
+    @test log_exploration(nothing) isa Function
 end
 
 @testset "save_gif early return coverage" begin
-    cb = save_gif(log_at_zero = false)
+    cb = save_gif(log_at_zero=false)
 
     s = (
         dir = tempdir(),
@@ -18,5 +28,5 @@ end
         agent = (; π = nothing)
     )
 
-    @test cb(i = 0, s = s, dir = tempdir(), logger = nothing) === nothing
+    @test cb(i=0, s=s, dir=tempdir(), logger=nothing) === nothing
 end
