@@ -1,49 +1,44 @@
-using Test
-using CUDA
-using Crux
-using Flux
+using Test, CUDA, Crux
 
-@testset "CPU device helpers" begin
-    vcpu = zeros(Float32, 10, 10)
+## Only run CUDA tests if it seems to be working properly
+USE_CUDA = false
+try
+	cu(zeros(Float32, 10, 10))
+	USE_CUDA = true
+	CUDA.allowscalar(false)
+catch end
 
-    @test Crux.device(vcpu) == cpu
-    @test Crux.device(view(vcpu, :, 1)) == cpu
-
-    c_cpu = Chain(Dense(5, 2))
-
-    @test Crux.device(c_cpu) == cpu
-    @test Crux.device(mdcall(c_cpu, rand(Float32, 5), cpu)) == cpu
-
-    @test cpucall(identity, vcpu) == vcpu
-
-    x2 = rand(Float32, 3, 4)
-    x3 = rand(Float32, 3, 4, 5)
-    x4 = rand(Float32, 3, 4, 5, 6)
-    x5 = rand(Float32, 2, 3, 4, 5, 6)
-
-    @test collect(bslice(x2, 1)) == collect(view(x2, :, 1))
-    @test collect(bslice(x3, 1)) == collect(view(x3, :, :, 1))
-    @test collect(bslice(x4, 1)) == collect(view(x4, :, :, :, 1))
-    @test collect(bslice(x5, 1)) == collect(view(x5, :, :, :, :, 1))
+## Run functionality tests
+@testset "README example" begin
+	include("readme.jl")
 end
-
-if CUDA.functional()
-    @testset "CUDA device helpers" begin
-        vgpu = cu(zeros(Float32, 10, 10))
-
-        @test Crux.device(vgpu) == gpu
-        @test Crux.device(view(vgpu, :, 1)) == gpu
-
-        c_gpu = Chain(Dense(5, 2)) |> gpu
-
-        @test Crux.device(c_gpu) == gpu
-
-        @test Crux.device(mdcall(c_gpu, rand(Float32, 5), gpu)) == cpu
-        @test Crux.device(mdcall(c_gpu, cu(rand(Float32, 5)), gpu)) == gpu
-
-        @test Crux.device(mdcall(Chain(Dense(5, 2)), cu(rand(Float32, 5)), cpu)) == gpu
-
-        @test gpucall(identity, vgpu) == vgpu
-        @test cpucall(identity, vgpu) == vgpu
-    end
+@testset "spaces" begin
+	include("spaces_tests.jl")
+end
+USE_CUDA && @testset "devices" begin
+	include("devices_tests.jl")
+end
+@testset "util" begin
+	include("util_tests.jl")
+end
+@testset "buffer" begin
+	include("experience_buffer_tests.jl")
+end
+@testset "policy" begin
+	include("policy_tests.jl")
+end
+@testset "logging" begin
+	include("logging_tests.jl")
+end
+@testset "extras" begin
+	include("extras_tests.jl")
+end
+@testset "solver" begin
+	include("gym/solver_tests.jl")
+end
+@testset "sampler" begin
+	include("gym/sampler_tests.jl")
+end
+@testset "analysis" begin
+	include("analysis.jl")
 end
