@@ -1,43 +1,18 @@
-using Crux, Flux
-## Gpu stuff
-vcpu = zeros(Float32, 10, 10)
-vgpu = cu(zeros(Float32, 10, 10))
-@test Crux.device(vcpu) == cpu
-@test Crux.device(vgpu) == gpu
-@test Crux.device(view(vcpu,:,1)) == cpu
-@test Crux.device(view(vgpu,:,1)) == gpu
+using Crux
+using Flux
+using Test
+using CUDA
 
-c_cpu = Chain(Dense(5,2))
-c_gpu = Chain(Dense(5,2)) |> gpu
-@test Crux.device(c_cpu) == cpu
-@test Crux.device(c_gpu) == gpu
-
-@test Crux.device(mdcall(c_cpu, rand(5), cpu)) == cpu
-@test Crux.device(mdcall(c_gpu, rand(5), gpu)) == cpu
-@test Crux.device(mdcall(c_cpu, cu(rand(5)), cpu)) == gpu
-@test Crux.device(mdcall(c_gpu, cu(rand(5)), gpu)) == gpu
-
-@testset "device helpers coverage" begin
+@testset "CPU device helpers" begin
     vcpu = zeros(Float32, 10, 10)
-    vgpu = cu(zeros(Float32, 10, 10))
 
     @test Crux.device(vcpu) == cpu
-    @test Crux.device(vgpu) == gpu
-
     @test Crux.device(view(vcpu, :, 1)) == cpu
-    @test Crux.device(view(vgpu, :, 1)) == gpu
 
     c_cpu = Chain(Dense(5, 2))
-    c_gpu = Chain(Dense(5, 2)) |> gpu
-
     @test Crux.device(c_cpu) == cpu
-    @test Crux.device(c_gpu) == gpu
 
     @test Crux.device(mdcall(c_cpu, rand(Float32, 5), cpu)) == cpu
-    @test Crux.device(mdcall(c_gpu, rand(Float32, 5), gpu)) == cpu
-    @test Crux.device(mdcall(c_cpu, cu(rand(Float32, 5)), cpu)) == gpu
-    @test Crux.device(mdcall(c_gpu, cu(rand(Float32, 5)), gpu)) == gpu
-
     @test cpucall(identity, vcpu) == vcpu
     @test gpucall(identity, vcpu) == vcpu
 
@@ -50,4 +25,22 @@ c_gpu = Chain(Dense(5,2)) |> gpu
     @test collect(bslice(x3, 1)) == collect(view(x3, :, :, 1))
     @test collect(bslice(x4, 1)) == collect(view(x4, :, :, :, 1))
     @test collect(bslice(x5, 1)) == collect(view(x5, :, :, :, :, 1))
+end
+
+if CUDA.functional()
+    @testset "CUDA device helpers" begin
+        vgpu = cu(zeros(Float32, 10, 10))
+
+        @test Crux.device(vgpu) == gpu
+        @test Crux.device(view(vgpu, :, 1)) == gpu
+
+        c_gpu = Chain(Dense(5, 2)) |> gpu
+        @test Crux.device(c_gpu) == gpu
+
+        @test Crux.device(mdcall(c_gpu, rand(Float32, 5), gpu)) == cpu
+        @test Crux.device(mdcall(c_gpu, cu(rand(Float32, 5)), gpu)) == gpu
+
+        @test gpucall(identity, vgpu) == vgpu
+        @test cpucall(identity, vgpu) == vgpu
+    end
 end
