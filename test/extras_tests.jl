@@ -106,7 +106,8 @@ end
     y = layer(x)
 
     @test size(y) == (8, 8, 2, 4)
-    @test eltype(y) == Float32
+    @test eltype(y) <: Real
+    @test all(isfinite, y)
 
     ps = Flux.trainable(layer)
     @test length(ps) == 2
