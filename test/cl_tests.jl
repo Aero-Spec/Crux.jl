@@ -1,8 +1,6 @@
 using Crux
 using Test
 using Flux
-using Distributions
-using LinearAlgebra
 using Random
 
 Random.seed!(1)
@@ -60,26 +58,26 @@ end
     y = rand(Float32, 1, 4)
     info = Dict()
 
-    td_loss = TIER_td_loss()
+    td_loss = Crux.TIER_td_loss()
     loss_val = td_loss(critic(π).N1, (;), 𝒟, y; info = info, z = 𝒟[:z])
 
     @test loss_val isa Number
     @test isfinite(loss_val)
     @test haskey(info, :Qavg)
 
-    double_loss = TIER_double_Q_loss()
+    double_loss = Crux.TIER_double_Q_loss()
     double_val = double_loss(π, (;), 𝒟, y; info = Dict(), z = 𝒟[:z])
 
     @test double_val isa Number
     @test isfinite(double_val)
 
-    actor_loss = TIER_TD3_actor_loss(π, (;), 𝒟)
+    actor_loss = Crux.TIER_TD3_actor_loss(π, (;), 𝒟)
 
     @test actor_loss isa Number
     @test isfinite(actor_loss)
 
-    areg = TIER_action_regularization(π, 𝒟)
-    vreg = TIER_action_value_regularization(π, 𝒟)
+    areg = Crux.TIER_action_regularization(π, 𝒟)
+    vreg = Crux.TIER_action_value_regularization(π, 𝒟)
 
     @test areg isa Number
     @test vreg isa Number
