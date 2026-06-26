@@ -14,12 +14,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        version:
-          - "1.12"
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
+        version: ["1.12"]
+        os: [ubuntu-latest]
+        arch: [x64]
 
     steps:
       - uses: actions/checkout@v2
@@ -31,14 +28,17 @@ jobs:
 
       - uses: actions/cache@v3
         env:
-          cache-name: cache-artifacts
+          cache-name: cache-julia
         with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-${{ matrix.arch }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          path: |
+            ~/.julia/artifacts
+            ~/.julia/compiled
+            ~/.julia/packages
+            ~/.julia/registries
+          key: ${{ runner.os }}-${{ matrix.arch }}-${{ matrix.version }}-${{ env.cache-name }}-${{ hashFiles('**/Project.toml', '**/Manifest.toml') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-${{ matrix.arch }}-test-
-            ${{ runner.os }}-${{ matrix.arch }}-
+            ${{ runner.os }}-${{ matrix.arch }}-${{ matrix.version }}-${{ env.cache-name }}-
+            ${{ runner.os }}-${{ matrix.arch }}-${{ matrix.version }}-
             ${{ runner.os }}-
 
       - uses: julia-actions/julia-buildpkg@latest
