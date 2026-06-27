@@ -8,42 +8,37 @@ on:
 
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["1.12"]
-        os: [ubuntu-latest]
-        arch: [x64]
+    name: Julia 1.12 - Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: julia-actions/setup-julia@v2
         with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
+          version: "1.12"
 
+      # Cache packages, artifacts, registries, compiled cache
       - uses: julia-actions/cache@v2
 
-      - uses: julia-actions/julia-buildpkg@v1
+      - name: Build package
+        uses: julia-actions/julia-buildpkg@v1
 
-      - run: |
+      - name: Configure Git
+        run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
 
-      - name: Run Tests
+      - name: Run tests
         uses: julia-actions/julia-runtest@v1
 
-      - uses: julia-actions/julia-processcoverage@v1
+      - name: Process coverage
+        uses: julia-actions/julia-processcoverage@v1
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: Aero-Spec/Crux.jl
-          files: ./lcov.info
+          files: lcov.info
           flags: unittests
-          name: codecov-umbrella
