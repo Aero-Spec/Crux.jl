@@ -84,3 +84,42 @@ end
     @test isfinite(areg)
     @test isfinite(vreg)
 end
+
+@testset "TIER constructor coverage" begin
+    S = ContinuousSpace(2)
+    A = ContinuousSpace(1)
+
+    latent_dim = 1
+
+    π = ActorCritic(
+        ContinuousNetwork(Chain(Dense(2 + latent_dim, 1)), A),
+        DoubleNetwork(
+            ContinuousNetwork(Chain(Dense(2 + latent_dim + 1, 1))),
+            ContinuousNetwork(Chain(Dense(2 + latent_dim + 1, 1)))
+        )
+    )
+
+    observation_model = Chain(Dense(2 + 1, 4, relu), Dense(4, latent_dim))
+
+    solver = TIER(
+        π = π,
+        observation_model = observation_model,
+        S = S,
+        A = A,
+        ΔN = 2,
+        latent_dim = latent_dim,
+        N_experience_replay = 10,
+        N_experience_obs = 10,
+        buffer_size = 20,
+        bayesian_inference = (model, D, prior; info = Dict()) -> prior,
+        solver = TD3,
+        N = 2
+    )
+
+    @test solver isa OffPolicySolver
+    @test haskey(solver.𝒫, :buffer_er)
+    @test haskey(solver.𝒫, :buffer_obs)
+    @test haskey(solver.𝒫, :observation_model)
+    @test haskey(solver.𝒫, :z_dist)
+    @test haskey(solver.𝒫, :zs)
+end
