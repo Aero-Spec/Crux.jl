@@ -118,3 +118,69 @@ end
 
     @test occursin("ConvSN", str)
 end
+@testset "BatchAdjacentBuffer coverage" begin
+    ref = ExperienceBuffer()
+    b = BatchAdjacentBuffer(elements = 3, default_z_dist = nothing, reference_buffer = ref)
+
+    @test isprioritized(b) == false
+    @test capacity(b) == 3
+    @test length(b) == 0
+
+    data1 = ExperienceBuffer((reward = [1.0, 2.0], episode_end = [false, true]))
+    data2 = ExperienceBuffer((reward = [3.0], episode_end = [true]))
+    data3 = ExperienceBuffer((reward = [4.0, 5.0], episode_end = [false, true]))
+    data4 = ExperienceBuffer((reward = [6.0], episode_end = [true]))
+
+    push!(b, data1, 0.1)
+    push!(b, data2, 0.2)
+    push!(b, data3, 0.3)
+
+    @test length(b.batches) == 3
+    @test length(b) == 5
+    @test b.z_dists == [0.1, 0.2, 0.3]
+
+    push!(b, data4, 0.4)
+
+    @test length(b.batches) == 3
+    @test b.z_dists[1] == 0.4
+    @test b.next_ind == 2
+
+    old_len = length(b.batches)
+    push!(b, data1)
+    @test length(b.batches) == old_len
+
+    inds = get_last_N_indices(b, 2)
+    @test length(inds) == 2
+    @test all(1 .<= inds .<= capacity(b))
+end
+
+@testset "BatchAdjacentBuffer reservoir coverage" begin
+    ref = ExperienceBuffer()
+    b = BatchAdjacentBuffer(elements = 2, default_z_dist = nothing, reference_buffer = ref)
+
+    data = ExperienceBuffer((reward = [1.0], episode_end = [true]))
+
+    push_reservoir!(b, data, 0.1; weight = 0.0)
+    @test length(b.batches) == 0
+
+    push_reservoir!(b, data, 0.1; weight = 1.0)
+    push_reservoir!(b, data, 0.2; weight = 1.0)
+    push_reservoir!(b, data, 0.3; weight = 1.0)
+
+    @test length(b.batches) == 2
+    @test b.total_count == 3
+end
+
+@testset "BatchAdjacentBuffer log averages coverage" begin
+    ref = ExperienceBuffer()
+    b = BatchAdjacentBuffer(elements = 3, default_z_dist = nothing, reference_buffer = ref)
+
+    push!(b, ExperienceBuffer((reward = [1.0, 3.0], episode_end = [false, true])), nothing)
+    push!(b, ExperienceBuffer((reward = [2.0, 4.0], episode_end = [false, true])), nothing)
+
+    logger = log_episode_averages(b, [:reward], 2)
+    d = logger()
+
+    @test haskey(d, :avg_reward)
+    @test d[:avg_reward] ≈ 5.0
+end
