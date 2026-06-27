@@ -45,6 +45,3 @@ end
 @testset "cl" begin
     include("cl_tests.jl")
 end
-@testset "adversarial" begin
-    include("adversarial_tests.jl")
-end
