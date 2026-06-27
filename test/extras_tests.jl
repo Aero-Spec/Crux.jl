@@ -118,35 +118,67 @@ end
 
     @test occursin("ConvSN", str)
 end
+
 @testset "BatchAdjacentBuffer coverage" begin
-    ref = ExperienceBuffer()
+    ref = ExperienceBuffer(ContinuousSpace(2), DiscreteSpace(4), 10)
     b = BatchAdjacentBuffer(elements = 3, default_z_dist = nothing, reference_buffer = ref)
 
     @test isprioritized(b) == false
     @test capacity(b) == 3
     @test length(b) == 0
 
-    data1 = ExperienceBuffer((reward = [1.0, 2.0], episode_end = [false, true]))
-    data2 = ExperienceBuffer((reward = [3.0], episode_end = [true]))
-    data3 = ExperienceBuffer((reward = [4.0, 5.0], episode_end = [false, true]))
-    data4 = ExperienceBuffer((reward = [6.0], episode_end = [true]))
+    d1 = Dict(
+        :s => ones(Float32, 2, 2),
+        :a => ones(Bool, 4, 2),
+        :sp => 2f0 .* ones(Float32, 2, 2),
+        :r => ones(Float32, 1, 2),
+        :done => zeros(Bool, 1, 2),
+        :episode_end => [false true],
+    )
 
-    push!(b, data1, 0.1)
-    push!(b, data2, 0.2)
-    push!(b, data3, 0.3)
+    d2 = Dict(
+        :s => 2f0 .* ones(Float32, 2, 1),
+        :a => ones(Bool, 4, 1),
+        :sp => 3f0 .* ones(Float32, 2, 1),
+        :r => 2f0 .* ones(Float32, 1, 1),
+        :done => zeros(Bool, 1, 1),
+        :episode_end => [true],
+    )
+
+    d3 = Dict(
+        :s => 3f0 .* ones(Float32, 2, 2),
+        :a => ones(Bool, 4, 2),
+        :sp => 4f0 .* ones(Float32, 2, 2),
+        :r => 3f0 .* ones(Float32, 1, 2),
+        :done => zeros(Bool, 1, 2),
+        :episode_end => [false true],
+    )
+
+    d4 = Dict(
+        :s => 4f0 .* ones(Float32, 2, 1),
+        :a => ones(Bool, 4, 1),
+        :sp => 5f0 .* ones(Float32, 2, 1),
+        :r => 4f0 .* ones(Float32, 1, 1),
+        :done => zeros(Bool, 1, 1),
+        :episode_end => [true],
+    )
+
+    push!(b, d1, 0.1)
+    push!(b, d2, 0.2)
+    push!(b, d3, 0.3)
 
     @test length(b.batches) == 3
     @test length(b) == 5
     @test b.z_dists == [0.1, 0.2, 0.3]
 
-    push!(b, data4, 0.4)
+    push!(b, d4, 0.4)
 
     @test length(b.batches) == 3
     @test b.z_dists[1] == 0.4
     @test b.next_ind == 2
 
     old_len = length(b.batches)
-    push!(b, data1)
+    push!(b, d1)
     @test length(b.batches) == old_len
 
     inds = get_last_N_indices(b, 2)
@@ -155,32 +187,58 @@ end
 end
 
 @testset "BatchAdjacentBuffer reservoir coverage" begin
-    ref = ExperienceBuffer()
+    ref = ExperienceBuffer(ContinuousSpace(2), DiscreteSpace(4), 10)
     b = BatchAdjacentBuffer(elements = 2, default_z_dist = nothing, reference_buffer = ref)
 
-    data = ExperienceBuffer((reward = [1.0], episode_end = [true]))
+    d = Dict(
+        :s => ones(Float32, 2, 1),
+        :a => ones(Bool, 4, 1),
+        :sp => 2f0 .* ones(Float32, 2, 1),
+        :r => ones(Float32, 1, 1),
+        :done => zeros(Bool, 1, 1),
+        :episode_end => [true],
+    )
 
-    push_reservoir!(b, data, 0.1; weight = 0.0)
+    push_reservoir!(b, d, 0.1; weight = 0.0)
     @test length(b.batches) == 0
+    @test b.total_count == 0
 
-    push_reservoir!(b, data, 0.1; weight = 1.0)
-    push_reservoir!(b, data, 0.2; weight = 1.0)
-    push_reservoir!(b, data, 0.3; weight = 1.0)
+    push_reservoir!(b, d, 0.1; weight = 1.0)
+    push_reservoir!(b, d, 0.2; weight = 1.0)
+    push_reservoir!(b, d, 0.3; weight = 1.0)
 
     @test length(b.batches) == 2
     @test b.total_count == 3
 end
 
 @testset "BatchAdjacentBuffer log averages coverage" begin
-    ref = ExperienceBuffer()
+    ref = ExperienceBuffer(ContinuousSpace(2), DiscreteSpace(4), 10)
     b = BatchAdjacentBuffer(elements = 3, default_z_dist = nothing, reference_buffer = ref)
 
-    push!(b, ExperienceBuffer((reward = [1.0, 3.0], episode_end = [false, true])), nothing)
-    push!(b, ExperienceBuffer((reward = [2.0, 4.0], episode_end = [false, true])), nothing)
+    d1 = Dict(
+        :s => ones(Float32, 2, 2),
+        :a => ones(Bool, 4, 2),
+        :sp => 2f0 .* ones(Float32, 2, 2),
+        :r => [1.0f0 3.0f0],
+        :done => zeros(Bool, 1, 2),
+        :episode_end => [false true],
+    )
 
-    logger = log_episode_averages(b, [:reward], 2)
+    d2 = Dict(
+        :s => 2f0 .* ones(Float32, 2, 2),
+        :a => ones(Bool, 4, 2),
+        :sp => 3f0 .* ones(Float32, 2, 2),
+        :r => [2.0f0 4.0f0],
+        :done => zeros(Bool, 1, 2),
+        :episode_end => [false true],
+    )
+
+    push!(b, d1, nothing)
+    push!(b, d2, nothing)
+
+    logger = log_episode_averages(b, [:r], 2)
     d = logger()
 
-    @test haskey(d, :avg_reward)
-    @test d[:avg_reward] ≈ 5.0
+    @test haskey(d, :avg_r)
+    @test d[:avg_r] ≈ 5.0
 end
