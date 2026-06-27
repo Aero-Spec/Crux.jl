@@ -101,6 +101,8 @@ end
 
     observation_model = Chain(Dense(2 + 1, 4, relu), Dense(4, latent_dim))
 
+    obs_loss(model, D; kwargs...) = Flux.mse(model(vcat(D[:s], D[:a])), D[:z])
+
     solver = TIER(
         π = π,
         observation_model = observation_model,
@@ -112,6 +114,7 @@ end
         N_experience_obs = 10,
         buffer_size = 20,
         bayesian_inference = (model, D, prior; info = Dict()) -> prior,
+        obs_opt = (; loss = obs_loss, epochs = 0, batch_size = 2),
         solver = TD3,
         N = 2
     )
