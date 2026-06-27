@@ -1,6 +1,5 @@
 name: CI
 
-# Run on master, tags, or any pull request
 on:
   push:
     branches: [master]
@@ -8,10 +7,10 @@ on:
   pull_request:
 
 jobs:
-  # unit tests with coverage
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -24,23 +23,15 @@ jobs:
           - macos-latest
         arch:
           - x64
-    steps:
-      # # install CUDA
-      # - uses: Jimver/cuda-toolkit@v0.2.4
-      #   id: cuda-toolkit
-      #   with:
-      #     cuda: '11.2.2'
 
-      # check out the project and install Julia
+    steps:
       - uses: actions/checkout@v2
+
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
 
-      # - run: pip install gym
-      # - run: julia --color=yes --project -e 'using Pkg; pkg"add https://github.com/ancorso/POMDPGym.jl"; Pkg.instantiate(); Pkg.build()'
-      # using a cache can speed up execution times
       - uses: actions/cache@v3
         env:
           cache-name: cache-artifacts
@@ -53,11 +44,12 @@ jobs:
             ${{ runner.os }}-${{ matrix.arch }}-
             ${{ runner.os }}-
 
-      # build the depencies, run the tests, and upload coverage results
       - uses: julia-actions/julia-buildpkg@latest
+
       - run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
+
       - name: Run Tests
         uses: julia-actions/julia-runtest@latest
 
@@ -70,5 +62,4 @@ jobs:
           slug: Aero-Spec/Crux.jl
           files: ./lcov.info
           flags: unittests
-          name: codecov-umbrella 
-
+          name: codecov-umbrella
