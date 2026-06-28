@@ -1,5 +1,6 @@
 name: CI
 
+# Run on master, tags, or any pull request
 on:
   push:
     branches: [master]
@@ -7,52 +8,62 @@ on:
   pull_request:
 
 jobs:
+  # unit tests with coverage
   test:
-    name: Julia 1.12 - Ubuntu
-    runs-on: ubuntu-latest
-
-    env:
-      PYTHON: ""
-      JULIA_CONDAPKG_BACKEND: Null
-
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "1.11"
+          - "1.12"
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+        arch:
+          - x64
     steps:
-      - uses: actions/checkout@v4
+      # # install CUDA
+      # - uses: Jimver/cuda-toolkit@v0.2.4
+      #   id: cuda-toolkit
+      #   with:
+      #     cuda: '11.2.2'
 
-      - uses: julia-actions/setup-julia@v2
+      # check out the project and install Julia
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
         with:
-          version: "1.12"
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
 
-      - uses: julia-actions/cache@v2
+      # - run: pip install gym
+      # - run: julia --color=yes --project -e 'using Pkg; pkg"add https://github.com/ancorso/POMDPGym.jl"; Pkg.instantiate(); Pkg.build()'
+      # using a cache can speed up execution times
+      - uses: actions/cache@v3
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-${{ matrix.arch }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-${{ matrix.arch }}-test-
+            ${{ runner.os }}-${{ matrix.arch }}-
+            ${{ runner.os }}-
 
-      - name: Fix PyCall Conda env
-        run: |
-          julia -e '
-            using Pkg
-            Pkg.add("Conda")
-            Pkg.build("Conda")
-            Pkg.add("PyCall")
-            ENV["PYTHON"] = ""
-            Pkg.build("PyCall")
-          '
-
-      - name: Build package
-        uses: julia-actions/julia-buildpkg@v1
-
-      - name: Configure Git
-        run: |
+      # build the depencies, run the tests, and upload coverage results
+      - uses: julia-actions/julia-buildpkg@latest
+      - run: |
           git config --global user.name Tester
           git config --global user.email te@st.er
-
-      - name: Run tests
-        uses: julia-actions/julia-runtest@v1
-
-      - name: Process coverage
-        uses: julia-actions/julia-processcoverage@v1
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v5
+      - name: Run Tests
+        uses: julia-actions/julia-runtest@latest
+      - uses: julia-actions/julia-processcoverage@v1
+      - uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: Aero-Spec/Crux.jl
-          files: lcov.info
+          file: ./lcov.info
           flags: unittests
+          name: codecov-umbrella
