@@ -11,6 +11,10 @@ jobs:
     name: Julia 1.12 - Ubuntu
     runs-on: ubuntu-latest
 
+    env:
+      PYTHON: ""
+      JULIA_CONDAPKG_BACKEND: Null
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,8 +22,18 @@ jobs:
         with:
           version: "1.12"
 
-      # Cache packages, artifacts, registries, compiled cache
       - uses: julia-actions/cache@v2
+
+      - name: Fix PyCall Conda env
+        run: |
+          julia -e '
+            using Pkg
+            Pkg.add("Conda")
+            Pkg.build("Conda")
+            Pkg.add("PyCall")
+            ENV["PYTHON"] = ""
+            Pkg.build("PyCall")
+          '
 
       - name: Build package
         uses: julia-actions/julia-buildpkg@v1
