@@ -5,7 +5,6 @@ using Flux
 using LinearAlgebra
 using CUDA
 using Distributions
-using Statistics
 
 # bslice
 v = zeros(4, 4, 4)
@@ -42,24 +41,23 @@ fitted = Distributions.fit(typeof(o), objs, [1.0, 2.0]; objs=objs)
 @test fitted.objs == objs
 
 # Useful functions
-@test whiten([1.0, 2.0, 3.0], 2.0, 1.0) == [-1.0, 0.0, 1.0]
-@test whiten([1.0, 2.0, 3.0]) ≈ ([1.0, 2.0, 3.0] .- mean([1.0, 2.0, 3.0])) ./ std([1.0, 2.0, 3.0])
+@test Crux.whiten([1.0, 2.0, 3.0], 2.0, 1.0) == [-1.0, 0.0, 1.0]
 
 W3 = reshape(1:24, 2, 3, 4)
-@test size(to2D(W3)) == (6, 4)
+@test size(Crux.to2D(W3)) == (6, 4)
 
-wm = weighted_mean([1.0, 2.0, 3.0])
-@test wm([2.0, 4.0, 6.0]) == mean([2.0, 8.0, 18.0])
+wm = Crux.weighted_mean([1.0, 2.0, 3.0])
+@test wm([2.0, 4.0, 6.0]) == 28.0 / 3.0
 
-@test logcomplement(0.5) ≈ log(0.5)
+@test Crux.logcomplement(0.5) ≈ log(0.5)
 
 xw = [1.0, 2.0, 3.0]
 ww = [1.0, 1.0, 1.0]
-@test weighted_logsumexp(xw, ww) ≈ log(sum(exp.(xw)))
+@test Crux.weighted_logsumexp(xw, ww) ≈ log(sum(exp.(xw)))
 
 xw2 = [3.0, 2.0, 1.0]
 ww2 = [1.0, 2.0, 3.0]
-@test weighted_logsumexp(xw2, ww2) ≈ log(sum(ww2 .* exp.(xw2)))
+@test Crux.weighted_logsumexp(xw2, ww2) ≈ log(sum(ww2 .* exp.(xw2)))
 
 # Flux Stuff
 W = rand(2, 5)
@@ -116,7 +114,7 @@ end
     vals = Ref([1.0, 1.0, 1.0, 1.0, 5.0, 5.0, 5.0, 5.0])
     loss_fn(_, _, _) = popfirst!(vals[])
 
-    stopper = stop_on_validation_increase(nothing, nothing, nothing, loss_fn; window=2)
+    stopper = Crux.stop_on_validation_increase(nothing, nothing, nothing, loss_fn; window=2)
     results = [stopper(infos[1:i]) for i in 1:length(infos)]
 
     @test any(results)
@@ -136,15 +134,15 @@ end
     td_loss(net, P, D, y; info=Dict()) = sum(abs.(net(y)))
     actor_loss(net, P, D; info=Dict()) = sum(abs.(net(D[:s])))
 
-    loss_fn = multi_td_loss([td_loss, td_loss])
+    loss_fn = Crux.multi_td_loss([td_loss, td_loss])
     @test loss_fn(π, P, D, ys) ≥ 0
 
-    loss_fn_indexed = multi_td_loss([td_loss, td_loss]; indices=1:1)
+    loss_fn_indexed = Crux.multi_td_loss([td_loss, td_loss]; indices=1:1)
     @test loss_fn_indexed(π, P, D, ys) ≥ 0
 
-    actor_fn = multi_actor_loss(actor_loss, 2)
+    actor_fn = Crux.multi_actor_loss(actor_loss, 2)
     @test actor_fn(π, P, D) ≥ 0
 
-    actor_fn_indexed = multi_actor_loss(actor_loss, 2; indices=1:1)
+    actor_fn_indexed = Crux.multi_actor_loss(actor_loss, 2; indices=1:1)
     @test actor_fn_indexed(π, P, D) ≥ 0
 end
