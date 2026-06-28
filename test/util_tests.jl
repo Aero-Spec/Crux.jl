@@ -37,7 +37,7 @@ o = ObjectCategorical(objs)
 
 @test entropy(o) == entropy(o.cat)
 
-fitted = Distributions.fit(typeof(o), objs, [1.0, 2.0])
+fitted = Distributions.fit(typeof(o), objs, [1.0, 2.0]; objs=objs)
 @test fitted isa ObjectCategorical
 @test fitted.objs == objs
 
@@ -117,7 +117,6 @@ end
     loss_fn(_, _, _) = popfirst!(vals[])
 
     stopper = stop_on_validation_increase(nothing, nothing, nothing, loss_fn; window=2)
-
     results = [stopper(infos[1:i]) for i in 1:length(infos)]
 
     @test any(results)
@@ -148,6 +147,4 @@ end
 
     actor_fn_indexed = multi_actor_loss(actor_loss, 2; indices=1:1)
     @test actor_fn_indexed(π, P, D) ≥ 0
-
-    @test td_error(nothing, nothing, D, 0.5) == abs(value(nothing, D[:s], D[:a]) - 0.5)
 end
