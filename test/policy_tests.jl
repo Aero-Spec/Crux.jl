@@ -417,26 +417,36 @@ a, logprob = exploration(p, s; π_on=ContinuousNetwork((x)->[1,], 1), i=20)
 ## Behavioral Cloning / IQ-Learn losses
 
 @testset "Behavior Cloning Losses" begin
-    π = GaussianPolicy(
-        ContinuousNetwork(Chain(Dense(2, 16, relu), Dense(16, 1))),
-        zeros(Float32, 1)
+    π_cont = ContinuousNetwork(
+        Chain(Dense(2, 16, relu), Dense(16, 1))
     )
 
     s = rand(Float32, 2, 8)
     a = rand(Float32, 1, 8)
 
-    D = Dict(
+    D_cont = Dict(
         :s => s,
         :a => a,
-        :value => value(π, s)
+        :value => value(π_cont, s)
     )
 
-    @test isfinite(mse_action_loss(π, (;), D))
+    @test isfinite(mse_action_loss(π_cont, (;), D_cont))
+    @test isfinite(mse_value_loss(π_cont, (λe=1f-3,), D_cont))
 
-    @test isfinite(mse_value_loss(π, (λe=1f-3,), D))
+    π_disc = DiscreteNetwork(
+        Chain(Dense(2,16,relu), Dense(16,2)),
+        [1,2]
+    )
+
+    a_disc = Flux.onehotbatch(rand([1,2], 8), [1,2])
+
+    D_disc = Dict(
+        :s => s,
+        :a => a_disc
+    )
 
     info = Dict()
-    l = logpdf_bc_loss(π, (λe=1f-3,), D; info=info)
+    l = logpdf_bc_loss(π_disc, (λe=1f-3,), D_disc; info=info)
 
     @test isfinite(l)
     @test haskey(info, :entropy)
@@ -444,24 +454,28 @@ a, logprob = exploration(p, s; π_on=ContinuousNetwork((x)->[1,], 1), i=20)
 end
 
 @testset "IQ Loss" begin
-    π = ActorCritic(
-        GaussianPolicy(
-            ContinuousNetwork(Chain(Dense(2,16,relu), Dense(16,1))),
-            zeros(Float32,1)
-        ),
-        ContinuousNetwork(Chain(Dense(3,16,relu), Dense(16,1)))
+    π = DiscreteNetwork(
+        Chain(Dense(2,16,relu), Dense(16,2)),
+        [1,2]
     )
 
     D = Dict(
         :s => rand(Float32,2,10),
         :sp => rand(Float32,2,10),
-        :a => rand(Float32,1,10),
-        :done => zeros(Float32,10),
-        :expert => reshape(rand(Bool,10),1,:)
+        :a => Flux.onehotbatch(rand([1,2],10), [1,2]),
+        :done => zeros(Float32,1,10),
+        :expert => reshape([true,false,true,false,true,false,true,false,true,false],1,:)
     )
 
     info = Dict()
-    loss = iq_loss(gp=false)(π, (;), D, nothing; info=info)
+
+    loss = iq_loss(gp=false)(
+        π,
+        (;),
+        D,
+        nothing;
+        info=info
+    )
 
     @test isfinite(loss)
     @test haskey(info, :softQloss)
@@ -472,11 +486,11 @@ end
 end
 
 @testset "IQ Callback" begin
-    D = Dict(:done => zeros(Float32, 5))
+    D = Dict(:done => zeros(Float32,5))
 
-    iq_callback(D; 𝒮=nothing)
+    Crux.iq_callback(D; 𝒮=nothing)
 
     @test haskey(D, :expert)
-    @test size(D[:expert]) == (1, 5)
+    @test size(D[:expert]) == (1,5)
     @test all(.!D[:expert])
 end
