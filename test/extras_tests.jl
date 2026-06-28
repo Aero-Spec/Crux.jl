@@ -329,7 +329,3 @@ end
     @test length(solvers) == 2
     @test all(s -> s isa DummySolver, solvers)
 end
-    @test size(out) == (1, 4)
-    @test all(isfinite, out)
-    @test length(Flux.trainable(m)) > 0
-end
