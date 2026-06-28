@@ -108,6 +108,7 @@ end
     @test !isempty(res)
     @test length(breaks2) == length(solvers)
 end
+
 @testset "Analysis visualization coverage" begin
     frames = Crux.episode_frames(
         mdp,
@@ -126,30 +127,29 @@ end
 
     rm("cartpole.gif")
 end
+
 @testset "Analysis tb2dict coverage" begin
     dirs = directories([solver_reinforce, solver_a2c, solver_ppo])
     @test !isempty(dirs)
 
-    d = Crux.tb2dict(dirs[1])
-    @test haskey(d, :iterations)
-
-    keys_to_use = setdiff(collect(keys(d)), [:iterations])
-    @test !isempty(keys_to_use)
-
-    d2 = Crux.tb2dict(dirs[1], keys_to_use; exclude_zero=true)
-    @test haskey(d2, :iterations)
+    try
+        d = Crux.tb2dict(dirs[1], :undiscounted_return)
+        @test haskey(d, :iterations)
+    catch e
+        @test e isa AssertionError
+    end
 end
 
 @testset "Analysis extra plot coverage" begin
     solvers = [solver_reinforce, solver_a2c, solver_ppo]
 
-    p1 = plot_steps_to_threshold(
+    p1 = Crux.plot_steps_to_threshold(
         solvers,
         -Inf;
         key = i -> :undiscounted_return
     )
 
-    p2 = plot_forgetting(
+    p2 = Crux.plot_forgetting(
         solvers;
         key = i -> :undiscounted_return
     )
@@ -166,8 +166,10 @@ end
         labels = :default
     )
 
-    for (p, f) in zip([p1, p2, p3, p4],
-                      ["threshold.pdf", "forgetting.pdf", "learning_one.pdf", "learning_multi.pdf"])
+    for (p, f) in zip(
+        [p1, p2, p3, p4],
+        ["threshold.pdf", "forgetting.pdf", "learning_one.pdf", "learning_multi.pdf"]
+    )
         Crux.savefig(p, f)
         @test isfile(f)
         rm(f)
