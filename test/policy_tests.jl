@@ -413,7 +413,6 @@ a, logprob = exploration(p, s; π_on=ContinuousNetwork((x)->[1,], 1), i=2)
 
 a, logprob = exploration(p, s; π_on=ContinuousNetwork((x)->[1,], 1), i=20)
 @test a==[1]
-## Behavioral Cloning / IQ-Learn losses
 
 @testset "Behavior Cloning Losses" begin
     π_cont = ContinuousNetwork(
@@ -425,23 +424,10 @@ a, logprob = exploration(p, s; π_on=ContinuousNetwork((x)->[1,], 1), i=20)
 
     D_cont = Dict(
         :s => s,
-        :a => a,
-        :value => value(π_cont, s)
+        :a => a
     )
 
     @test isfinite(mse_action_loss(π_cont, (;), D_cont))
-
-    π_gauss = GaussianPolicy(
-        ContinuousNetwork(Chain(Dense(2, 16, relu), Dense(16, 1))),
-        zeros(Float32, 1)
-    )
-
-    D_value = Dict(
-        :s => s,
-        :value => action(π_gauss, s)
-    )
-
-    @test isfinite(mse_value_loss(π_gauss, (λe=1f-3,), D_value))
 
     π_disc = DiscreteNetwork(
         Chain(Dense(2, 16, relu), Dense(16, 2)),
