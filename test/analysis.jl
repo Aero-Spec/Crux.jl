@@ -44,9 +44,9 @@ policy_ppo = solve(solver_ppo, mdp)
 end
 
 @testset "Analysis utility coverage" begin
-    @test percentile(0.5, 10, 20) == 15
-    @test percentile(0.0, 10, 20) == 10
-    @test percentile(1.0, 10, 20) == 20
+    @test Crux.percentile(0.5, 10, 20) == 15
+    @test Crux.percentile(0.0, 10, 20) == 10
+    @test Crux.percentile(1.0, 10, 20) == 20
 
     @test find_crossing([1, 2, 3], [0.1, 0.7, 0.9], 0.6) == 2
     @test isnan(find_crossing([1, 2, 3], [0.1, 0.2, 0.3], 0.6))
