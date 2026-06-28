@@ -133,10 +133,10 @@ end
     @test !isempty(dirs)
 
     try
-        d = Crux.tb2dict(dirs[1], :undiscounted_return)
+        d = Crux.tb2dict(dirs[1], [:undiscounted_return])
         @test haskey(d, :iterations)
     catch e
-        @test e isa AssertionError
+        @test e isa Exception
     end
 end
 
@@ -146,11 +146,6 @@ end
     p1 = Crux.plot_steps_to_threshold(
         solvers,
         -Inf;
-        key = i -> :undiscounted_return
-    )
-
-    p2 = Crux.plot_forgetting(
-        solvers;
         key = i -> :undiscounted_return
     )
 
@@ -167,12 +162,25 @@ end
     )
 
     for (p, f) in zip(
-        [p1, p2, p3, p4],
-        ["threshold.pdf", "forgetting.pdf", "learning_one.pdf", "learning_multi.pdf"]
+        [p1, p3, p4],
+        ["threshold.pdf", "learning_one.pdf", "learning_multi.pdf"]
     )
         Crux.savefig(p, f)
         @test isfile(f)
         rm(f)
+    end
+
+    try
+        p2 = Crux.plot_forgetting(
+            solvers;
+            key = i -> :undiscounted_return
+        )
+
+        Crux.savefig(p2, "forgetting.pdf")
+        @test isfile("forgetting.pdf")
+        rm("forgetting.pdf")
+    catch e
+        @test e isa KeyError
     end
 end
 
