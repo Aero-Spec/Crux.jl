@@ -3,6 +3,9 @@ using Test
 using Zygote
 using Flux
 using Random
+using Distributions
+using StatsBase
+using LinearAlgebra
 
 Random.seed!(1)
 
@@ -425,4 +428,157 @@ end
 
     trainable_params = Flux.trainable(m)
     @test length(trainable_params) > 0
+end
+@testset "BatchRegularizer coverage" begin
+    b = ExperienceBuffer(
+        Dict(
+            :s => rand(Float32, 2, 5),
+            :a => rand(Float32, 1, 5),
+            :value => rand(Float32, 1, 5),
+        )
+    )
+
+    R = BatchRegularizer(
+        buffers = [b],
+        batch_size = 3,
+        λ = 2f0,
+        loss = (π, 𝒟) -> mean(𝒟[:value])
+    )
+
+    π = Chain(Dense(2, 1))
+
+    val = R(π)
+
+    @test val isa Number
+    @test isfinite(val)
+    @test !isnothing(R.𝒟s)
+    @test length(R.𝒟s) == 1
+    @test length(R.𝒟s[1]) == 3
+
+    empty_b = ExperienceBuffer(Dict(:s => zeros(Float32, 2, 0), :value => zeros(Float32, 1, 0)))
+
+    R_empty = BatchRegularizer(
+        buffers = [empty_b],
+        batch_size = 3,
+        λ = 2f0,
+        loss = (π, 𝒟) -> error("should not run")
+    )
+
+    @test R_empty(π) == 0f0
+end
+
+@testset "cross entropy and mcmc coverage" begin
+    f(z) = sum(abs2, z)
+
+    P = MvNormal(zeros(2), Matrix{Float64}(I, 2, 2))
+    P2 = cross_entropy(f, P; k = 1, m = 10, m_extra = 2, m_elite = 5)
+
+    @test P2 isa MvNormal
+    @test length(best_estimate(P2)) == 2
+    @test uncertainty(P2) isa Number
+    @test isfinite(uncertainty(P2))
+
+    particles = rand(Float32, 2, 10)
+    particles2 = mcmc(f, particles; k = 1, m = 10, m_extra = 2)
+
+    @test size(particles2) == size(particles)
+    @test size(best_estimate(particles2)) == (2, 1)
+    @test uncertainty(particles2) isa Number
+    @test isfinite(uncertainty(particles2))
+end
+
+@testset "DeepEnsemble coverage" begin
+    generator() = Chain(Dense(2, 4))
+    m = DeepEnsemble(generator, 3)
+
+    x = rand(Float32, 2, 5)
+    y = rand(Float32, 2, 5)
+
+    μs, σ²s = individual_forward(m, x)
+    μ, σ² = m(x)
+    lp = logpdf(m, x, y)
+    loss = training_loss(m, x, y)
+
+    @test length(m.models) == 3
+    @test length(μs) == 3
+    @test length(σ²s) == 3
+    @test size(μ) == (2, 5)
+    @test size(σ²) == (2, 5)
+    @test size(lp) == (2, 5)
+    @test loss isa Number
+    @test isfinite(loss)
+    @test all(σ² .> 0)
+end
+
+@testset "DeepClassificationEnsemble coverage" begin
+    generator() = Chain(Dense(2, 3))
+    m = DeepClassificationEnsemble(generator, 3)
+
+    x = rand(Float32, 2, 5)
+    y = Flux.onehotbatch(rand(1:3, 5), 1:3)
+
+    ps = individual_forward(m, x)
+    p = m(x)
+    lp = logpdf(m, x, y)
+    loss = training_loss(m, x, y)
+
+    @test length(m.models) == 3
+    @test length(ps) == 3
+    @test size(p) == (3, 5)
+    @test size(lp) == (1, 5)
+    @test loss isa Number
+    @test isfinite(loss)
+    @test all(isfinite, p)
+end
+
+@testset "DiagonalFisherRegularizer coverage" begin
+    π = Chain(Dense(2, 1))
+    θ = Flux.params(π)
+
+    R = DiagonalFisherRegularizer(θ, 0.5f0)
+
+    @test R.N == 0
+    @test R.λ == 0.5f0
+    @test R(π) == 0f0
+
+    x = rand(Float32, 2, 4)
+    y = rand(Float32, 1, 4)
+
+    add_fisher_information_diagonal!(R, () -> -Flux.mse(π(x), y), θ)
+
+    @test R.N == 1
+    @test all(size(F) == size(p) for (F, p) in zip(R.F, θ))
+    @test R(π) isa Number
+    @test isfinite(R(π))
+end
+
+@testset "SirenDense and ModulatedSiren coverage" begin
+    s = SirenDense(2, 3; isfirst = true)
+    x = rand(Float32, 2, 4)
+    y = s(x)
+
+    @test size(y) == (3, 4)
+    @test all(isfinite, y)
+
+    sirens = Chain(
+        SirenDense(2, 4; isfirst = true),
+        SirenDense(4, 4),
+        SirenDense(4, 4),
+        Dense(4, 1),
+    )
+
+    modulator = Chain(
+        Dense(2, 4),
+        Dense(6, 4),
+        Dense(6, 4),
+    )
+
+    m = ModulatedSiren(sirens, modulator)
+
+    z = rand(Float32, 2, 4)
+    out = m(x, z)
+
+    @test size(out) == (1, 4)
+    @test all(isfinite, out)
+    @test length(Flux.trainable(m)) > 0
 end
