@@ -126,3 +126,63 @@ end
 
     rm("cartpole.gif")
 end
+@testset "Analysis tb2dict coverage" begin
+    dirs = directories([solver_reinforce, solver_a2c, solver_ppo])
+    @test !isempty(dirs)
+
+    d = Crux.tb2dict(dirs[1])
+    @test haskey(d, :iterations)
+
+    keys_to_use = setdiff(collect(keys(d)), [:iterations])
+    @test !isempty(keys_to_use)
+
+    d2 = Crux.tb2dict(dirs[1], keys_to_use; exclude_zero=true)
+    @test haskey(d2, :iterations)
+end
+
+@testset "Analysis extra plot coverage" begin
+    solvers = [solver_reinforce, solver_a2c, solver_ppo]
+
+    p1 = plot_steps_to_threshold(
+        solvers,
+        -Inf;
+        key = i -> :undiscounted_return
+    )
+
+    p2 = plot_forgetting(
+        solvers;
+        key = i -> :undiscounted_return
+    )
+
+    p3 = plot_learning(
+        [solver_reinforce];
+        values = :undiscounted_return,
+        labels = :default
+    )
+
+    p4 = plot_learning(
+        solvers;
+        values = :undiscounted_return,
+        labels = :default
+    )
+
+    for (p, f) in zip([p1, p2, p3, p4],
+                      ["threshold.pdf", "forgetting.pdf", "learning_one.pdf", "learning_multi.pdf"])
+        Crux.savefig(p, f)
+        @test isfile(f)
+        rm(f)
+    end
+end
+
+@testset "Analysis observation frame coverage" begin
+    frames = Crux.episode_frames(
+        mdp,
+        policy_ppo;
+        Neps = 1,
+        max_steps = 2,
+        use_obs = true
+    )
+
+    @test frames isa Vector
+    @test !isempty(frames)
+end
